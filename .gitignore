@@ -20,3 +20,8 @@
 # Go workspace file
 go.work
 go.work.sum
+/dating-api.iml
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
