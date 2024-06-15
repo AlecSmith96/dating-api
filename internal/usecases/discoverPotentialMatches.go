@@ -17,12 +17,10 @@ type DiscoverPotentialMatchesResponseBody struct {
 }
 
 type UserResponseBody struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Name     string `json:"name"`
-	Gender   string `json:"gender"`
-	Age      int    `json:"age"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Gender string `json:"gender"`
+	Age    int    `json:"age"`
 }
 
 func NewDiscoverPotentialMatches(discoverer UserDiscoverer) gin.HandlerFunc {
@@ -45,12 +43,10 @@ func NewDiscoverPotentialMatches(discoverer UserDiscoverer) gin.HandlerFunc {
 		var returnedUsers []UserResponseBody
 		for _, user := range users {
 			returnedUsers = append(returnedUsers, UserResponseBody{
-				ID:       user.ID.String(),
-				Email:    user.Email,
-				Password: user.Password,
-				Name:     user.Name,
-				Gender:   user.Gender,
-				Age:      user.GetAge(),
+				ID:     user.ID.String(),
+				Name:   user.Name,
+				Gender: user.Gender,
+				Age:    user.GetAge(),
 			})
 		}
 
