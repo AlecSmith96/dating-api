@@ -3,12 +3,14 @@ package adapters
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/AlecSmith96/dating-api/internal/entities"
 	"github.com/AlecSmith96/dating-api/internal/usecases"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/pressly/goose/v3"
 	"log/slog"
+	"strings"
 	"time"
 )
 
@@ -20,6 +22,7 @@ type PostgresAdapter struct {
 
 var _ usecases.UserCreator = &PostgresAdapter{}
 var _ usecases.UserAuthenticator = &PostgresAdapter{}
+var _ usecases.JwtProcessor = &PostgresAdapter{}
 
 func NewPostgresAdapter(db *sql.DB, jwtExpiryMillis int, jwtSecretKey string) *PostgresAdapter {
 	return &PostgresAdapter{
@@ -143,4 +146,33 @@ func (p *PostgresAdapter) IssueJWT(userID uuid.UUID) (*entities.Token, error) {
 		Value:    returnedToken.Value,
 		IssuedAt: returnedToken.IssuedAt,
 	}, nil
+}
+
+// ValidateJwtForUser is a function that checks that the token value parsed is part of a valid token and returns the
+// userID if it is valid.
+func (p *PostgresAdapter) ValidateJwtForUser(tokenValue string) (uuid.UUID, error) {
+	var returnedToken entities.Token
+	err := p.db.QueryRow("SELECT * FROM token WHERE value = $1;", tokenValue).
+		Scan(&returnedToken.ID, &returnedToken.UserID, &returnedToken.Value, &returnedToken.IssuedAt)
+	if err != nil {
+		slog.Error("getting token", "err", err)
+		return uuid.UUID{}, nil
+	}
+
+	_, err = jwt.ParseWithClaims(tokenValue, &MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(p.jwtSecretKey), nil
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "token is expired") {
+			slog.Debug("jwt is expired", "userID", returnedToken.UserID)
+			return uuid.UUID{}, entities.ErrJwtExpired
+		}
+		slog.Debug("unable to parse jwt", "err", err)
+		return uuid.UUID{}, err
+	}
+
+	return returnedToken.UserID, nil
 }
