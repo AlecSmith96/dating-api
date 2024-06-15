@@ -26,7 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	postgresAdapter := adapters.NewPostgresAdapter(db, conf.JwtExpiryMillis)
+	postgresAdapter := adapters.NewPostgresAdapter(db, conf.JwtExpiryMillis, conf.JwtSecretKey)
 	err = postgresAdapter.PerformDataMigration(gooseDir)
 	if err != nil {
 		slog.Error("performing data migration", "err", err)

@@ -83,7 +83,9 @@ func (p *PostgresAdapter) LoginUser(email string, password string) (*entities.Us
 }
 
 type MyCustomClaims struct {
-	UserID int `json:"user_id"`
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+	Name   string `json:"name"`
 	jwt.RegisteredClaims
 }
 
@@ -103,11 +105,13 @@ func (p *PostgresAdapter) IssueJWT(userID uuid.UUID) (*entities.Token, error) {
 		return nil, err
 	}
 
-	expirationTime := time.Now().Add(300000 * time.Millisecond)
+	issuedAt := time.Now()
+	expirationTime := issuedAt.Add(300000 * time.Millisecond)
 
-	// Create the claims
 	claims := MyCustomClaims{
-		UserID: 12345,
+		UserID: returnedUser.ID.String(),
+		Email:  returnedUser.Email,
+		Name:   returnedUser.Name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "dating-api",
 			Subject:   "user authentication",
@@ -118,22 +122,25 @@ func (p *PostgresAdapter) IssueJWT(userID uuid.UUID) (*entities.Token, error) {
 		},
 	}
 
-	// Create the token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	// Sign the token with the secret key
-	tokenString, err := token.SignedString(p.jwtSecretKey)
+	tokenString, err := token.SignedString([]byte(p.jwtSecretKey))
 	if err != nil {
 		slog.Debug("failed to sign jwt", "err", err)
 		return nil, err
 	}
 
-	// TODO: finish dis
+	var returnedToken entities.Token
+	err = p.db.QueryRow("INSERT INTO token (user_id, value, issued_at) VALUES ($1, $2, $3) RETURNING *;", returnedUser.ID, tokenString, issuedAt).
+		Scan(&returnedToken.ID, &returnedToken.UserID, &returnedToken.Value, &returnedToken.IssuedAt)
+	if err != nil {
+		slog.Debug("writing token to storage", "err", err)
+		return nil, err
+	}
 
 	return &entities.Token{
-		ID:       uuid.New().String(),
-		UserID:   uuid.UUID{},
-		Value:    tokenString,
-		IssuedAt: time.Time{},
+		ID:       returnedToken.ID,
+		UserID:   returnedToken.UserID,
+		Value:    returnedToken.Value,
+		IssuedAt: returnedToken.IssuedAt,
 	}, nil
 }
