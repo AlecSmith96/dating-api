@@ -14,6 +14,15 @@ import (
 	"time"
 )
 
+const (
+	discoverUsersQuery = `SELECT pu.*
+FROM platform_user pu
+LEFT JOIN user_swipe us
+ON pu.id = us.swiped_user_id AND us.owner_user_id = $1
+WHERE pu.id != $1 AND us.id IS NULL;
+`
+)
+
 type PostgresAdapter struct {
 	db              *sql.DB
 	jwtExpiryMillis int
@@ -23,6 +32,7 @@ type PostgresAdapter struct {
 var _ usecases.UserCreator = &PostgresAdapter{}
 var _ usecases.UserAuthenticator = &PostgresAdapter{}
 var _ usecases.JwtProcessor = &PostgresAdapter{}
+var _ usecases.UserDiscoverer = &PostgresAdapter{}
 
 func NewPostgresAdapter(db *sql.DB, jwtExpiryMillis int, jwtSecretKey string) *PostgresAdapter {
 	return &PostgresAdapter{
@@ -175,4 +185,37 @@ func (p *PostgresAdapter) ValidateJwtForUser(tokenValue string) (uuid.UUID, erro
 	}
 
 	return returnedToken.UserID, nil
+}
+
+func (p *PostgresAdapter) DiscoverNewUsers(ownerUserID uuid.UUID) ([]entities.User, error) {
+	rows, err := p.db.Query(discoverUsersQuery, ownerUserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []entities.User{}, nil
+		}
+
+		slog.Debug("unable to get users", "err", err)
+		return nil, err
+	}
+
+	var users []entities.User
+	for rows.Next() {
+		var user entities.User
+		err = rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.Password,
+			&user.Name,
+			&user.Gender,
+			&user.DateOfBirth,
+		)
+		if err != nil {
+			slog.Debug("unable to read user row", "err", err)
+			continue
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
 }

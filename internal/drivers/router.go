@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// TokenAuthMiddleware is a middleware function that processing the provided JWT in the Authorization header of the
-// request. If the JWT is valid, it sets the userID value in the requests context and parses it to the usecase.
+// TokenAuthMiddleware is a custom middleware function that processes the provided JWT in the Authorization header of
+// the request. If the JWT is valid, it sets the userID value in the requests context and parses it to the usecase.
 func TokenAuthMiddleware(jwtProcessor usecases.JwtProcessor) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeaderValue := c.GetHeader("Authorization")
@@ -45,6 +45,7 @@ func NewRouter(
 	userCreator usecases.UserCreator,
 	userAuthenticator usecases.UserAuthenticator,
 	jwtProcessor usecases.JwtProcessor,
+	userDiscoverer usecases.UserDiscoverer,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -55,6 +56,7 @@ func NewRouter(
 		protected := v1.Group("/user", TokenAuthMiddleware(jwtProcessor))
 		{
 			protected.POST("/create", usecases.NewCreateUser(userCreator))
+			protected.GET("/discover", usecases.NewDiscoverPotentialMatches(userDiscoverer))
 		}
 	}
 
