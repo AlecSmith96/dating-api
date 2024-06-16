@@ -9,7 +9,17 @@ import (
 )
 
 type UserDiscoverer interface {
-	DiscoverNewUsers(ownerUserID uuid.UUID) ([]entities.User, error)
+	DiscoverNewUsers(ownerUserID uuid.UUID, pageInfo entities.PageInfo) ([]entities.UserDiscovery, error)
+}
+
+type DiscoverPotentialMatchesRequestBody struct {
+	PageInfo PageInfo `json:"pageInfo"`
+}
+
+type PageInfo struct {
+	MinAge           int      `json:"minAge"`
+	MaxAge           int      `json:"maxAge"`
+	PreferredGenders []string `json:"preferredGenders"`
 }
 
 type DiscoverPotentialMatchesResponseBody struct {
@@ -32,8 +42,20 @@ func NewDiscoverPotentialMatches(discoverer UserDiscoverer) gin.HandlerFunc {
 			return
 		}
 
+		var request DiscoverPotentialMatchesRequestBody
+		err := c.ShouldBindJSON(&request)
+		if err != nil {
+			slog.Error("validating request body", "err", err)
+			c.JSON(http.StatusBadRequest, entities.ErrorMessage{Message: "unable to validate request body"})
+			return
+		}
+
 		userIDString := userID.(uuid.UUID)
-		users, err := discoverer.DiscoverNewUsers(userIDString)
+		users, err := discoverer.DiscoverNewUsers(userIDString, entities.PageInfo{
+			MinAge:           request.PageInfo.MinAge,
+			MaxAge:           request.PageInfo.MaxAge,
+			PreferredGenders: request.PageInfo.PreferredGenders,
+		})
 		if err != nil {
 			slog.Error("getting users", "err", err)
 			c.JSON(http.StatusInternalServerError, entities.ErrorMessage{Message: "unable to get users"})
@@ -46,7 +68,7 @@ func NewDiscoverPotentialMatches(discoverer UserDiscoverer) gin.HandlerFunc {
 				ID:     user.ID.String(),
 				Name:   user.Name,
 				Gender: user.Gender,
-				Age:    user.GetAge(),
+				Age:    user.Age,
 			})
 		}
 

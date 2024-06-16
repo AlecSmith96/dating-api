@@ -16,10 +16,14 @@ import (
 
 const (
 	discoverUsersQuery = `SELECT pu.*
-FROM platform_user pu
+FROM (
+    SELECT pu.*, 
+           DATE_PART('year', AGE(pu.date_of_birth)) AS age
+    FROM platform_user pu
+) pu
 LEFT JOIN user_swipe us
 ON pu.id = us.swiped_user_id AND us.owner_user_id = $1
-WHERE pu.id != $1 AND us.id IS NULL;
+WHERE pu.id != $1 AND us.id IS NULL
 `
 )
 
@@ -188,20 +192,52 @@ func (p *PostgresAdapter) ValidateJwtForUser(tokenValue string) (uuid.UUID, erro
 	return returnedToken.UserID, nil
 }
 
-func (p *PostgresAdapter) DiscoverNewUsers(ownerUserID uuid.UUID) ([]entities.User, error) {
-	rows, err := p.db.Query(discoverUsersQuery, ownerUserID)
+func (p *PostgresAdapter) DiscoverNewUsers(ownerUserID uuid.UUID, pageInfo entities.PageInfo) ([]entities.UserDiscovery, error) {
+	paramIndex := 2
+	queryString := discoverUsersQuery
+	queryArgs := []any{ownerUserID}
+	if pageInfo.MinAge != 0 {
+		minAgeCheck := fmt.Sprintf(" AND pu.age >= $%d", paramIndex)
+		queryString += minAgeCheck
+		paramIndex++
+		queryArgs = append(queryArgs, pageInfo.MinAge)
+	}
+
+	if pageInfo.MaxAge != 0 {
+		maxAgeCheck := fmt.Sprintf(" AND pu.age <= $%d", paramIndex)
+		queryString += maxAgeCheck
+		paramIndex++
+		queryArgs = append(queryArgs, pageInfo.MaxAge)
+	}
+
+	if len(pageInfo.PreferredGenders) != 0 {
+		placeholders := make([]string, len(pageInfo.PreferredGenders))
+		for i := range pageInfo.PreferredGenders {
+			placeholders[i] = fmt.Sprintf("$%d", paramIndex)
+			paramIndex++
+		}
+
+		genderCheck := fmt.Sprintf(" AND pu.gender IN (%s)", strings.Join(placeholders, ", "))
+		queryString += genderCheck
+		for _, gender := range pageInfo.PreferredGenders {
+			queryArgs = append(queryArgs, gender)
+		}
+	}
+	queryString += ";"
+
+	rows, err := p.db.Query(queryString, queryArgs...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []entities.User{}, nil
+			return []entities.UserDiscovery{}, nil
 		}
 
 		slog.Debug("unable to get users", "err", err)
 		return nil, err
 	}
 
-	var users []entities.User
+	var users []entities.UserDiscovery
 	for rows.Next() {
-		var user entities.User
+		var user entities.UserDiscovery
 		err = rows.Scan(
 			&user.ID,
 			&user.Email,
@@ -209,6 +245,7 @@ func (p *PostgresAdapter) DiscoverNewUsers(ownerUserID uuid.UUID) ([]entities.Us
 			&user.Name,
 			&user.Gender,
 			&user.DateOfBirth,
+			&user.Age,
 		)
 		if err != nil {
 			slog.Debug("unable to read user row", "err", err)
