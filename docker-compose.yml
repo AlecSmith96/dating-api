@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  dating-api:
+    build:
+      context: .
+      dockerfile: ./build/Dockerfile
+    image: dating-api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - GO111MODULE=on
+      - CGO_ENABLED=0
+      - GOOS=linux
+      - DATABASE_CONNECTION_STRING=host=postgres port=5432 user=postgres password=postgres dbname=users sslmode=disable
+      - JWT_EXPIRY_MILLIS=3000000
+      - JWT_SECRET_KEY=something-secret-2ba7d6e5615a2cb118b4dffd886794312296b7a9dcdbc772cd90b4b2ed16215c
+    depends_on:
+      - postgres
+    restart: "unless-stopped"
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: users
+    ports:
+      - "5432:5432"

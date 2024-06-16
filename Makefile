@@ -5,3 +5,6 @@ start-postgres:
 stop-postgres:
 	bash -c "podman stop postgres || true"
 	bash -c "podman rm postgres || true"
+
+make run-service:
+	podman-compose up --build -d
