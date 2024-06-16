@@ -33,6 +33,7 @@ var _ usecases.UserCreator = &PostgresAdapter{}
 var _ usecases.UserAuthenticator = &PostgresAdapter{}
 var _ usecases.JwtProcessor = &PostgresAdapter{}
 var _ usecases.UserDiscoverer = &PostgresAdapter{}
+var _ usecases.SwipeRegister = &PostgresAdapter{}
 
 func NewPostgresAdapter(db *sql.DB, jwtExpiryMillis int, jwtSecretKey string) *PostgresAdapter {
 	return &PostgresAdapter{
@@ -218,4 +219,39 @@ func (p *PostgresAdapter) DiscoverNewUsers(ownerUserID uuid.UUID) ([]entities.Us
 	}
 
 	return users, nil
+}
+
+func (p *PostgresAdapter) RegisterSwipe(ownerUserID, swipedUserID uuid.UUID, isPositivePreference bool) error {
+	_, err := p.db.Exec("INSERT INTO user_swipe (owner_user_id, swiped_user_id, positive_preference) VALUES ($1, $2, $3);", ownerUserID, swipedUserID, isPositivePreference)
+	if err != nil {
+		slog.Debug("error inserting swipe record", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (p *PostgresAdapter) IsMatch(ownerUserID, swipedUserID uuid.UUID) (*entities.Match, error) {
+	var exists bool
+	err := p.db.QueryRow("SELECT EXISTS (SELECT 1 FROM user_swipe WHERE owner_user_id = $1 AND swiped_user_id = $2 AND positive_preference = TRUE);", swipedUserID, ownerUserID).
+		Scan(&exists)
+	if err != nil {
+		slog.Debug("error checking if swiped user also swiped positively", "err", err)
+		return nil, err
+	}
+
+	var match entities.Match
+	if exists {
+		err = p.db.QueryRow("INSERT INTO user_match (owner_user_id, matched_user_id) VALUES ($1, $2) RETURNING *;", ownerUserID, swipedUserID).
+			Scan(&match.ID, &match.OwnerUserID, &match.MatchedUserID)
+		if err != nil {
+			slog.Debug("creating match record", "err", err)
+			return nil, err
+		}
+
+		return &match, nil
+	}
+
+	slog.Debug("match does not exist for users", "ownerUserID", ownerUserID, "swipedUserID", swipedUserID)
+	return nil, nil
 }

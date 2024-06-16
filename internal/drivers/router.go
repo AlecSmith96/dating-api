@@ -46,6 +46,7 @@ func NewRouter(
 	userAuthenticator usecases.UserAuthenticator,
 	jwtProcessor usecases.JwtProcessor,
 	userDiscoverer usecases.UserDiscoverer,
+	swipeRegister usecases.SwipeRegister,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -57,6 +58,7 @@ func NewRouter(
 		{
 			protected.POST("/create", usecases.NewCreateUser(userCreator))
 			protected.GET("/discover", usecases.NewDiscoverPotentialMatches(userDiscoverer))
+			protected.POST("/swipe", usecases.NewSwipeUser(swipeRegister))
 		}
 	}
 

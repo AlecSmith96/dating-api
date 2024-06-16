@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	router := drivers.NewRouter(postgresAdapter, postgresAdapter, postgresAdapter, postgresAdapter)
+	router := drivers.NewRouter(postgresAdapter, postgresAdapter, postgresAdapter, postgresAdapter, postgresAdapter)
 
 	router.Run(":8080")
 }
