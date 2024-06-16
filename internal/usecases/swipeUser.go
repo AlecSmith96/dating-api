@@ -13,16 +13,43 @@ type SwipeRegister interface {
 	IsMatch(ownerUserID, swipedUserID uuid.UUID) (*entities.Match, error)
 }
 
+// SwipeUserRequestBody represents the swipe result on a user
+// @Description the swipe result on a user
 type SwipeUserRequestBody struct {
-	UserID     uuid.UUID `json:"userId" binding:"required"`
-	Preference string    `json:"preference" binding:"required,oneof=YES yes NO no"`
+	// UserID the id of the user that is swiped on
+	UserID uuid.UUID `json:"userId" binding:"required"`
+	// Preference the preference for the user
+	Preference string `json:"preference" binding:"required,oneof=YES yes NO no"`
 }
 
+// SwipeUserResponseBody represents the result of the swipe
+// @Description the result of the swipe, if theres a match it returns the matchID
+type SwipeUserResponseBody struct {
+	// Results the result of the swipe
+	Results Result `json:"results"`
+}
+
+// Result represents the information of the swipe result
+// @Description the information of the swipe result
 type Result struct {
-	Matched bool      `json:"matched"`
+	// Matched whether the swipe resulted in a match
+	Matched bool `json:"matched"`
+	// MatchID the id of the match if the swipe resulted in one
 	MatchID uuid.UUID `json:"matchId"`
 }
 
+// NewSwipeUser swipe on a user
+// @Summary Swipe on a user
+// @Description Provides a swipe result on a user
+// @Security BearerAuth
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body SwipeUserRequestBody true "Swipe User Request Body"
+// @Success 200 {object} SwipeUserResponseBody
+// @Failure 400
+// @Failure 500
+// @Router /user/swipe [post]
 func NewSwipeUser(swipeRegister SwipeRegister) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, ok := c.Get("userID")

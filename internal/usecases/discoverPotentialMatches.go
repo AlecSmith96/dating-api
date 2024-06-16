@@ -12,27 +12,56 @@ type UserDiscoverer interface {
 	DiscoverNewUsers(ownerUserID uuid.UUID, pageInfo entities.PageInfo) ([]entities.UserDiscovery, error)
 }
 
+// DiscoverPotentialMatchesRequestBody represents the filters for the returned list of users
+// @Description the request body for the discover endpoint
 type DiscoverPotentialMatchesRequestBody struct {
+	// PageInfo represents the filter information for the request
 	PageInfo PageInfo `json:"pageInfo"`
 }
 
+// PageInfo represents the filters for the returned list of users
+// @Description the filter information for the request
 type PageInfo struct {
-	MinAge           int      `json:"minAge"`
-	MaxAge           int      `json:"maxAge"`
+	// MinAge is the minimum age of any users returned in the list
+	MinAge int `json:"minAge"`
+	// MaxAge is the maximum age of any users returned in the list
+	MaxAge int `json:"maxAge"`
+	// PreferredGenders is an array of genders to include in the list
 	PreferredGenders []string `json:"preferredGenders"`
 }
 
+// DiscoverPotentialMatchesResponseBody represents the response of the discover endpoint
+// @Description the response body for the discover endpoint
 type DiscoverPotentialMatchesResponseBody struct {
+	// Users is the returned list of all users matching the filter criteria
 	Users []UserResponseBody `json:"users"`
 }
 
+// UserResponseBody represents a user that is returned by the discover endpoint
+// @Description a user matching the filter criteria
 type UserResponseBody struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
+	// ID is the id of the user
+	ID string `json:"id"`
+	// Name is the name of the user
+	Name string `json:"name"`
+	// Gender is the gender of the user
 	Gender string `json:"gender"`
-	Age    int    `json:"age"`
+	// Age is the age of the user
+	Age int `json:"age"`
 }
 
+// NewDiscoverPotentialMatches get a filterable list of users
+// @Summary Discover new users
+// @Description Gets a filterable list of new users
+// @Security BearerAuth
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body DiscoverPotentialMatchesRequestBody true "Discover Potential Matches Request Body"
+// @Success 200 {object} DiscoverPotentialMatchesResponseBody
+// @Failure 400
+// @Failure 500
+// @Router /user/discover [get]
 func NewDiscoverPotentialMatches(discoverer UserDiscoverer) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, ok := c.Get("userID")

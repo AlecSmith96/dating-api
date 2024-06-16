@@ -2,9 +2,12 @@ package drivers
 
 import (
 	"errors"
+	"github.com/AlecSmith96/dating-api/docs"
 	"github.com/AlecSmith96/dating-api/internal/entities"
 	"github.com/AlecSmith96/dating-api/internal/usecases"
 	"github.com/gin-gonic/gin"
+	"github.com/swaggo/files"
+	"github.com/swaggo/gin-swagger"
 	"net/http"
 	"strings"
 )
@@ -50,8 +53,10 @@ func NewRouter(
 ) *gin.Engine {
 	r := gin.Default()
 
+	docs.SwaggerInfo.BasePath = "/dating-api/v1"
 	v1 := r.Group("/dating-api/v1")
 	{
+		v1.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 		v1.POST("/login", usecases.NewLoginUser(userAuthenticator))
 
 		protected := v1.Group("/user", TokenAuthMiddleware(jwtProcessor))

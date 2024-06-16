@@ -7,7 +7,7 @@ import (
 type Config struct {
 	DatabaseConnectionString string `yaml:"database-connection-string" env:"DATABASE_CONNECTION_STRING" env-required:"true"`
 	JwtExpiryMillis          int    `yaml:"jwt-expiry-millis" env:"JWT_EXPIRY_MILLIS" env-required:"true"`
-	JwtSecretKey             string `yaml:"jwt-secret-key" ENV:"JWT_SECRET_KEY" env-required:"true"`
+	JwtSecretKey             string `yaml:"jwt-secret-key" env:"JWT_SECRET_KEY" env-required:"true"`
 }
 
 func NewConfig() (*Config, error) {

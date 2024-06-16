@@ -8,3 +8,7 @@ stop-postgres:
 
 make run-service:
 	podman-compose up --build -d
+
+# generate swagger documentation
+swagger:
+	swag init --generalInfo ../../cmd/main.go --dir ./internal/usecases

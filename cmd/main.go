@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	_ "github.com/AlecSmith96/dating-api/docs"
 	"github.com/AlecSmith96/dating-api/internal/adapters"
 	"github.com/AlecSmith96/dating-api/internal/drivers"
 	_ "github.com/lib/pq"
@@ -12,6 +13,13 @@ import (
 const (
 	gooseDir = "./db/goose"
 )
+
+// @title dating-api
+// @version 1.0
+// @description This is a simple REST server allowing users to log in, create new users, discover new users and swipe on them with your preference.
+// securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 
 func main() {
 	conf, err := adapters.NewConfig()

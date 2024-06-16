@@ -14,15 +14,33 @@ type UserAuthenticator interface {
 	IssueJWT(userID uuid.UUID) (*entities.Token, error)
 }
 
+// LoginUserRequestBody represents the login credentials for the user
+// @Description the login information for the user
 type LoginUserRequestBody struct {
-	Email    string `json:"email" binding:"required"`
+	// Email represents the email of the user to log in as
+	Email string `json:"email" binding:"required"`
+	// Password represents the password of the user to log in as
 	Password string `json:"password" binding:"required"`
 }
 
+// LoginUserResponseBody represents the Bearer token to use in authenticated requests
+// @Description the newly issued JWT for the logged in user
 type LoginUserResponseBody struct {
+	// Token represents the JWT issued for the logged in user
 	Token string `json:"token"`
 }
 
+// NewLoginUser logs in a user
+// @Summary Login a user
+// @Description Logs in a user with the provided credentials
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body LoginUserRequestBody true "Login User Request Body"
+// @Success 200 {object} LoginUserResponseBody
+// @Failure 400
+// @Failure 500
+// @Router /login [post]
 func NewLoginUser(userAuthenticator UserAuthenticator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var request LoginUserRequestBody

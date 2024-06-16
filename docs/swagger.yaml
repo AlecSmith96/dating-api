@@ -1,0 +1,236 @@
+definitions:
+  usecases.CreateUserResponseBody:
+    description: Response body for the newly created user
+    properties:
+      age:
+        description: Age the generated age for the user
+        type: integer
+      email:
+        description: Email the generated email for the user
+        type: string
+      gender:
+        description: Gender the generated gender for the user
+        type: string
+      id:
+        description: ID the generated id for the user
+        type: string
+      name:
+        description: Name the generated name for the user
+        type: string
+      password:
+        description: Password the generated password for the user
+        type: string
+    type: object
+  usecases.DiscoverPotentialMatchesRequestBody:
+    description: the request body for the discover endpoint
+    properties:
+      pageInfo:
+        allOf:
+        - $ref: '#/definitions/usecases.PageInfo'
+        description: PageInfo represents the filter information for the request
+    type: object
+  usecases.DiscoverPotentialMatchesResponseBody:
+    description: the response body for the discover endpoint
+    properties:
+      users:
+        description: Users is the returned list of all users matching the filter criteria
+        items:
+          $ref: '#/definitions/usecases.UserResponseBody'
+        type: array
+    type: object
+  usecases.LoginUserRequestBody:
+    description: the login information for the user
+    properties:
+      email:
+        description: Email represents the email of the user to log in as
+        type: string
+      password:
+        description: Password represents the password of the user to log in as
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  usecases.LoginUserResponseBody:
+    description: the newly issued JWT for the logged in user
+    properties:
+      token:
+        description: Token represents the JWT issued for the logged in user
+        type: string
+    type: object
+  usecases.PageInfo:
+    description: the filter information for the request
+    properties:
+      maxAge:
+        description: MaxAge is the maximum age of any users returned in the list
+        type: integer
+      minAge:
+        description: MinAge is the minimum age of any users returned in the list
+        type: integer
+      preferredGenders:
+        description: PreferredGenders is an array of genders to include in the list
+        items:
+          type: string
+        type: array
+    type: object
+  usecases.Result:
+    description: the information of the swipe result
+    properties:
+      matchId:
+        description: MatchID the id of the match if the swipe resulted in one
+        type: string
+      matched:
+        description: Matched whether the swipe resulted in a match
+        type: boolean
+    type: object
+  usecases.SwipeUserRequestBody:
+    description: the swipe result on a user
+    properties:
+      preference:
+        description: Preference the preference for the user
+        enum:
+        - "YES"
+        - "yes"
+        - "NO"
+        - "no"
+        type: string
+      userId:
+        description: UserID the id of the user that is swiped on
+        type: string
+    required:
+    - preference
+    - userId
+    type: object
+  usecases.SwipeUserResponseBody:
+    description: the result of the swipe, if theres a match it returns the matchID
+    properties:
+      results:
+        allOf:
+        - $ref: '#/definitions/usecases.Result'
+        description: Results the result of the swipe
+    type: object
+  usecases.UserResponseBody:
+    description: a user matching the filter criteria
+    properties:
+      age:
+        description: Age is the age of the user
+        type: integer
+      gender:
+        description: Gender is the gender of the user
+        type: string
+      id:
+        description: ID is the id of the user
+        type: string
+      name:
+        description: Name is the name of the user
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is a simple REST server allowing users to log in, create new users,
+    discover new users and swipe on them with your preference.
+  title: dating-api
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user with the provided credentials
+      parameters:
+      - description: Login User Request Body
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/usecases.LoginUserRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.LoginUserResponseBody'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Login a user
+      tags:
+      - users
+  /user/create:
+    post:
+      description: Generates a new user record based on fake data
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.CreateUserResponseBody'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Create a new user
+      tags:
+      - users
+  /user/discover:
+    get:
+      consumes:
+      - application/json
+      description: Gets a filterable list of new users
+      parameters:
+      - description: Discover Potential Matches Request Body
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/usecases.DiscoverPotentialMatchesRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.DiscoverPotentialMatchesResponseBody'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Discover new users
+      tags:
+      - users
+  /user/swipe:
+    post:
+      consumes:
+      - application/json
+      description: Provides a swipe result on a user
+      parameters:
+      - description: Swipe User Request Body
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/usecases.SwipeUserRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecases.SwipeUserResponseBody'
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Swipe on a user
+      tags:
+      - users
+swagger: "2.0"
