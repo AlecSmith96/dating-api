@@ -54,12 +54,15 @@ func (p *PostgresAdapter) PerformDataMigration(gooseDir string) error {
 
 func (p *PostgresAdapter) CreateUser(user *entities.User) (*entities.User, error) {
 	var returnedUser entities.User
-	err := p.db.QueryRow("INSERT INTO platform_user(email, password, name, gender, date_of_birth) VALUES ($1, $2, $3, $4, $5) RETURNING *;",
+	err := p.db.QueryRow("INSERT INTO platform_user(email, password, name, gender, date_of_birth, location_latitude, location_longitude) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;",
 		user.Email,
 		user.Password,
 		user.Name,
 		user.Gender,
-		user.DateOfBirth).
+		user.DateOfBirth,
+		user.Location.Latitude,
+		user.Location.Longitude,
+	).
 		Scan(
 			&returnedUser.ID,
 			&returnedUser.Email,
@@ -67,6 +70,8 @@ func (p *PostgresAdapter) CreateUser(user *entities.User) (*entities.User, error
 			&returnedUser.Name,
 			&returnedUser.Gender,
 			&returnedUser.DateOfBirth,
+			&returnedUser.Location.Latitude,
+			&returnedUser.Location.Longitude,
 		)
 	if err != nil {
 		slog.Debug("creating new user", "err", err)
@@ -86,6 +91,8 @@ func (p *PostgresAdapter) LoginUser(email string, password string) (*entities.Us
 			&returnedUser.Name,
 			&returnedUser.Gender,
 			&returnedUser.DateOfBirth,
+			&returnedUser.Location.Latitude,
+			&returnedUser.Location.Longitude,
 		)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -109,7 +116,7 @@ type MyCustomClaims struct {
 
 func (p *PostgresAdapter) IssueJWT(userID uuid.UUID) (*entities.Token, error) {
 	var returnedUser entities.User
-	err := p.db.QueryRow("SELECT * FROM platform_user WHERE id = $1;", userID).
+	err := p.db.QueryRow("SELECT * FROM platform_user WHERE platform_user.id = $1;", userID).
 		Scan(
 			&returnedUser.ID,
 			&returnedUser.Email,
@@ -117,6 +124,8 @@ func (p *PostgresAdapter) IssueJWT(userID uuid.UUID) (*entities.Token, error) {
 			&returnedUser.Name,
 			&returnedUser.Gender,
 			&returnedUser.DateOfBirth,
+			&returnedUser.Location.Latitude,
+			&returnedUser.Location.Longitude,
 		)
 	if err != nil {
 		slog.Debug("getting user to issue jwt", "err", err)
@@ -245,6 +254,8 @@ func (p *PostgresAdapter) DiscoverNewUsers(ownerUserID uuid.UUID, pageInfo entit
 			&user.Name,
 			&user.Gender,
 			&user.DateOfBirth,
+			&user.Location.Latitude,
+			&user.Location.Longitude,
 			&user.Age,
 		)
 		if err != nil {
@@ -256,6 +267,18 @@ func (p *PostgresAdapter) DiscoverNewUsers(ownerUserID uuid.UUID, pageInfo entit
 	}
 
 	return users, nil
+}
+
+func (p *PostgresAdapter) GetUsersLocation(userID uuid.UUID) (*entities.Location, error) {
+	var location entities.Location
+	err := p.db.QueryRow("SELECT location_latitude, location_longitude FROM platform_user WHERE id = $1", userID).
+		Scan(&location.Latitude, &location.Longitude)
+	if err != nil {
+		slog.Debug("error getting users location", "err", err)
+		return nil, err
+	}
+
+	return &location, nil
 }
 
 func (p *PostgresAdapter) RegisterSwipe(ownerUserID, swipedUserID uuid.UUID, isPositivePreference bool) error {

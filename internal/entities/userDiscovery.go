@@ -13,5 +13,6 @@ type UserDiscovery struct {
 	Name        string
 	Gender      string
 	DateOfBirth time.Time
+	Location    Location
 	Age         int
 }

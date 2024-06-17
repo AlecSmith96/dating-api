@@ -28,6 +28,15 @@ type CreateUserResponseBody struct {
 	Gender string `json:"gender"`
 	// Age the generated age for the user
 	Age int `json:"age"`
+	// Location the generated location for the user
+	Location Location `json:"location"`
+}
+
+type Location struct {
+	// Latitude the generated latitude for the users location
+	Latitude float64 `json:"latitude"`
+	// Longitude the generated longitude for the users location
+	Longitude float64 `json:"longitude"`
 }
 
 // @BasePath /dating-api/v1
@@ -50,6 +59,10 @@ func NewCreateUser(userCreator UserCreator) gin.HandlerFunc {
 			Name:        gofakeit.Name(),
 			Gender:      gofakeit.Gender(),
 			DateOfBirth: gofakeit.Date(),
+			Location: entities.Location{
+				Latitude:  gofakeit.Address().Latitude,
+				Longitude: gofakeit.Address().Longitude,
+			},
 		}
 
 		user, err := userCreator.CreateUser(newUser)
@@ -66,6 +79,10 @@ func NewCreateUser(userCreator UserCreator) gin.HandlerFunc {
 			Name:     user.Name,
 			Gender:   user.Gender,
 			Age:      user.GetAge(),
+			Location: Location{
+				Latitude:  user.Location.Latitude,
+				Longitude: user.Location.Longitude,
+			},
 		})
 	}
 }

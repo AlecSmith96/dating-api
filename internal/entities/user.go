@@ -12,6 +12,12 @@ type User struct {
 	Name        string
 	Gender      string
 	DateOfBirth time.Time
+	Location    Location
+}
+
+type Location struct {
+	Latitude  float64
+	Longitude float64
 }
 
 func (u *User) GetAge() int {

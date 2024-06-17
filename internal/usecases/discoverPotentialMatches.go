@@ -1,15 +1,19 @@
 package usecases
 
 import (
+	"cmp"
 	"github.com/AlecSmith96/dating-api/internal/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/umahmood/haversine"
 	"log/slog"
 	"net/http"
+	"slices"
 )
 
 type UserDiscoverer interface {
 	DiscoverNewUsers(ownerUserID uuid.UUID, pageInfo entities.PageInfo) ([]entities.UserDiscovery, error)
+	GetUsersLocation(userID uuid.UUID) (*entities.Location, error)
 }
 
 // DiscoverPotentialMatchesRequestBody represents the filters for the returned list of users
@@ -48,6 +52,8 @@ type UserResponseBody struct {
 	Gender string `json:"gender"`
 	// Age is the age of the user
 	Age int `json:"age"`
+	// DistanceFromMe is the distance between the users measured in miles
+	DistanceFromMe float64 `json:"distanceFromMe"`
 }
 
 // NewDiscoverPotentialMatches get a filterable list of users
@@ -79,8 +85,8 @@ func NewDiscoverPotentialMatches(discoverer UserDiscoverer) gin.HandlerFunc {
 			return
 		}
 
-		userIDString := userID.(uuid.UUID)
-		users, err := discoverer.DiscoverNewUsers(userIDString, entities.PageInfo{
+		requestingUserID := userID.(uuid.UUID)
+		users, err := discoverer.DiscoverNewUsers(requestingUserID, entities.PageInfo{
 			MinAge:           request.PageInfo.MinAge,
 			MaxAge:           request.PageInfo.MaxAge,
 			PreferredGenders: request.PageInfo.PreferredGenders,
@@ -91,15 +97,32 @@ func NewDiscoverPotentialMatches(discoverer UserDiscoverer) gin.HandlerFunc {
 			return
 		}
 
+		location, err := discoverer.GetUsersLocation(requestingUserID)
+		if err != nil {
+			slog.Error("getting requesting users location", "err", err)
+			c.JSON(http.StatusInternalServerError, entities.ErrorMessage{Message: "an internal error occurred"})
+			return
+		}
+
 		var returnedUsers []UserResponseBody
 		for _, user := range users {
+			requestingUserLocation := haversine.Coord{Lat: location.Latitude, Lon: location.Longitude}
+			userLocation := haversine.Coord{Lat: user.Location.Latitude, Lon: user.Location.Longitude}
+
+			distanceInMiles, _ := haversine.Distance(requestingUserLocation, userLocation)
+
 			returnedUsers = append(returnedUsers, UserResponseBody{
-				ID:     user.ID.String(),
-				Name:   user.Name,
-				Gender: user.Gender,
-				Age:    user.Age,
+				ID:             user.ID.String(),
+				Name:           user.Name,
+				Gender:         user.Gender,
+				Age:            user.Age,
+				DistanceFromMe: distanceInMiles,
 			})
 		}
+
+		slices.SortFunc(returnedUsers, func(a, b UserResponseBody) int {
+			return cmp.Compare(a.DistanceFromMe, b.DistanceFromMe)
+		})
 
 		c.JSON(http.StatusOK, DiscoverPotentialMatchesResponseBody{Users: returnedUsers})
 	}

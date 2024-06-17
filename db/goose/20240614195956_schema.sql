@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS token(
     issued_at   TIMESTAMP NOT NULL
 );
 
+-- add test data
 INSERT INTO platform_user (email, password, name, gender, date_of_birth) VALUES ('admin', 'admin', 'admin', 'male', '1990-01-01 00:00:00');
 -- +goose StatementEnd
 

@@ -195,6 +195,9 @@ github.com/twitchyliquid64/golang-asm/unsafeheader
 # github.com/ugorji/go/codec v1.2.12
 ## explicit; go 1.11
 github.com/ugorji/go/codec
+# github.com/umahmood/haversine v0.0.0-20151105152445-808ab04add26
+## explicit
+github.com/umahmood/haversine
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr

@@ -13,6 +13,7 @@ require (
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.3
+	github.com/umahmood/haversine v0.0.0-20151105152445-808ab04add26
 )
 
 require (

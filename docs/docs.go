@@ -198,6 +198,14 @@ const docTemplate = `{
                     "description": "ID the generated id for the user",
                     "type": "string"
                 },
+                "location": {
+                    "description": "Location the generated location for the user",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/usecases.Location"
+                        }
+                    ]
+                },
                 "name": {
                     "description": "Name the generated name for the user",
                     "type": "string"
@@ -232,6 +240,19 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/usecases.UserResponseBody"
                     }
+                }
+            }
+        },
+        "usecases.Location": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "description": "Latitude the generated latitude for the users location",
+                    "type": "number"
+                },
+                "longitude": {
+                    "description": "Longitude the generated longitude for the users location",
+                    "type": "number"
                 }
             }
         },
@@ -343,6 +364,10 @@ const docTemplate = `{
                 "age": {
                     "description": "Age is the age of the user",
                     "type": "integer"
+                },
+                "distanceFromMe": {
+                    "description": "DistanceFromMe is the distance between the users measured in miles",
+                    "type": "number"
                 },
                 "gender": {
                     "description": "Gender is the gender of the user",

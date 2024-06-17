@@ -14,6 +14,10 @@ definitions:
       id:
         description: ID the generated id for the user
         type: string
+      location:
+        allOf:
+        - $ref: '#/definitions/usecases.Location'
+        description: Location the generated location for the user
       name:
         description: Name the generated name for the user
         type: string
@@ -37,6 +41,15 @@ definitions:
         items:
           $ref: '#/definitions/usecases.UserResponseBody'
         type: array
+    type: object
+  usecases.Location:
+    properties:
+      latitude:
+        description: Latitude the generated latitude for the users location
+        type: number
+      longitude:
+        description: Longitude the generated longitude for the users location
+        type: number
     type: object
   usecases.LoginUserRequestBody:
     description: the login information for the user
@@ -115,6 +128,10 @@ definitions:
       age:
         description: Age is the age of the user
         type: integer
+      distanceFromMe:
+        description: DistanceFromMe is the distance between the users measured in
+          miles
+        type: number
       gender:
         description: Gender is the gender of the user
         type: string

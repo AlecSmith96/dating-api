@@ -58,7 +58,7 @@ func NewSwipeUser(swipeRegister SwipeRegister) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, entities.ErrorMessage{Message: "unable to get users"})
 			return
 		}
-		userIDUUID := userID.(uuid.UUID)
+		requestingUserID := userID.(uuid.UUID)
 
 		var request SwipeUserRequestBody
 		err := c.ShouldBindJSON(&request)
@@ -85,14 +85,14 @@ func NewSwipeUser(swipeRegister SwipeRegister) gin.HandlerFunc {
 			return
 		}
 
-		err = swipeRegister.RegisterSwipe(userIDUUID, request.UserID, isPositivePreference)
+		err = swipeRegister.RegisterSwipe(requestingUserID, request.UserID, isPositivePreference)
 		if err != nil {
 			slog.Error("registering swipe", "err", err)
 			c.JSON(http.StatusInternalServerError, entities.ErrorMessage{Message: "an internal server error occurred"})
 			return
 		}
 
-		match, err := swipeRegister.IsMatch(userIDUUID, request.UserID)
+		match, err := swipeRegister.IsMatch(requestingUserID, request.UserID)
 		if err != nil {
 			slog.Error("checking for match", "err", err)
 			c.JSON(http.StatusInternalServerError, entities.ErrorMessage{Message: "an internal server error occurred"})
