@@ -3,7 +3,7 @@
 A simple REST server for users to login to the platform, view other users based on criteria, and swipe on them with their preference.
 
 ## Service design and architecture
-The service is implemented using [Clean Architecture](https://medium.easyread.co/golang-clean-archithecture-efd6d7c43047) in order to make it as maintainable and testable as possible. It does 
+The service is implemented using [Clean Architecture](https://celepbeyza.medium.com/introduction-to-clean-architecture-acf25ffe0310) in order to make it as maintainable and testable as possible. It does 
 this by decoupling the application code from the business logic, allowing for changes to the application code to be made
 without impacting the business logic (or vice versa). It separates the code into four distinct layers, each responsible 
 for different things:
