@@ -107,7 +107,7 @@ func TestAddUserSwipeAndUserMatchTables(t *testing.T) {
 
 func TestAddLocationFields(t *testing.T) {
 	g := NewGomegaWithT(t)
-	db, err := SetUpMigrationTestDB("add_user_swipe_table")
+	db, err := SetUpMigrationTestDB("add_location_fields")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = goose.UpTo(db, "../../db/goose", 20240615135847) // initial migration

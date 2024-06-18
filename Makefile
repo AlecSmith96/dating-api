@@ -12,3 +12,8 @@ make run-service:
 # generate swagger documentation
 swagger:
 	swag init --generalInfo ../../cmd/main.go --dir ./internal/usecases
+
+# run all service tests
+test:
+	make start-postgres
+	bash -c "trap 'make stop-postgres' EXIT; go test ./internal/... -coverprofile=coverage.out"
