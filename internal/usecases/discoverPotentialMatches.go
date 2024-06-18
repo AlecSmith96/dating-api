@@ -11,6 +11,7 @@ import (
 	"slices"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -destination=../../mocks/userDiscoverer.go  . "UserDiscoverer"
 type UserDiscoverer interface {
 	DiscoverNewUsers(ownerUserID uuid.UUID, pageInfo entities.PageInfo) ([]entities.UserDiscovery, error)
 	GetUsersLocation(userID uuid.UUID) (*entities.Location, error)

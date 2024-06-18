@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -destination=../../mocks/swipeRegister.go  . "SwipeRegister"
 type SwipeRegister interface {
 	RegisterSwipe(ownerUserID, swipedUserID uuid.UUID, isPositivePreference bool) error
 	IsMatch(ownerUserID, swipedUserID uuid.UUID) (*entities.Match, error)

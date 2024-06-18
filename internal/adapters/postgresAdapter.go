@@ -180,7 +180,7 @@ func (p *PostgresAdapter) ValidateJwtForUser(tokenValue string) (uuid.UUID, erro
 		Scan(&returnedToken.ID, &returnedToken.UserID, &returnedToken.Value, &returnedToken.IssuedAt)
 	if err != nil {
 		slog.Error("getting token", "err", err)
-		return uuid.UUID{}, nil
+		return uuid.UUID{}, err
 	}
 
 	_, err = jwt.ParseWithClaims(tokenValue, &MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {

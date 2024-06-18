@@ -21,3 +21,5 @@ By default the JWT will expire after 5 minutes after which you must request a ne
 
 ## Assumptions
 - Gender filtering: that being able specify multiple genders is an appropriate option for the target customers.
+- Password encryption
+- pagination

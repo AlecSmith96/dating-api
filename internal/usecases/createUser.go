@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -destination=../../mocks/userCreator.go  . "UserCreator"
 type UserCreator interface {
 	CreateUser(user *entities.User) (*entities.User, error)
 }

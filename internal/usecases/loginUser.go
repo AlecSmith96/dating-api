@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -destination=../../mocks/userAuthenticator.go  . "UserAuthenticator"
 type UserAuthenticator interface {
 	LoginUser(email string, password string) (*entities.User, error)
 	IssueJWT(userID uuid.UUID) (*entities.Token, error)
