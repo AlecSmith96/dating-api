@@ -10,6 +10,11 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
 	"testing"
+	"time"
+)
+
+const (
+	mockJWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWI4ZjFiZTAtOWJjMC00YjAxLTg1NzgtMzlkNWM0MDlmMWFlIiwiZW1haWwiOiJhZG1pbiIsIm5hbWUiOiJhZG1pbiIsImlzcyI6ImRhdGluZy1hcGkiLCJzdWIiOiJ1c2VyIGF1dGhlbnRpY2F0aW9uIiwiYXVkIjpbImRhdGluZy1hcGkgdXNlcnMiXSwiZXhwIjoxNzE4NjMyOTI5LCJpYXQiOjE3MTg2MzI2MjksImp0aSI6InVuaXF1ZS1pZC0xMjM0NSJ9.wWukfV2Pc_qFCAxyK6v6g4U8daODLZqaF4wXU4XHGOE"
 )
 
 func TestNewPostgresAdapter(t *testing.T) {
@@ -21,6 +26,186 @@ func TestNewPostgresAdapter(t *testing.T) {
 	g.Expect(adapter).To(BeAssignableToTypeOf(&adapters.PostgresAdapter{}))
 
 	defer db.Close()
+}
+
+func TestPostgresAdapter_LoginUser(t *testing.T) {
+	g := NewWithT(t)
+	db, mock, err := sqlmock.New()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	adapter := adapters.NewPostgresAdapter(db, 0, "something-secret")
+
+	user := &entities.User{
+		ID:          uuid.New(),
+		Email:       gofakeit.Email(),
+		Password:    gofakeit.Password(true, true, true, true, true, 15),
+		Name:        gofakeit.Name(),
+		Gender:      gofakeit.Gender(),
+		DateOfBirth: gofakeit.Date(),
+		Location: entities.Location{
+			Latitude:  gofakeit.Address().Latitude,
+			Longitude: gofakeit.Address().Longitude,
+		},
+	}
+
+	mock.ExpectQuery(`SELECT \* FROM platform_user WHERE email = \$1 AND password = \$2 LIMIT 1;`).WithArgs(user.Email, user.Password).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email", "password", "name", "gender", "date_of_birth", "location_latitude", "location_longitude"}).
+			AddRow(user.ID, user.Email, user.Password, user.Name, user.Gender, user.DateOfBirth, user.Location.Latitude, user.Location.Longitude))
+
+	_, err = adapter.LoginUser(user.Email, user.Password)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestPostgresAdapter_ErrNoRows(t *testing.T) {
+	g := NewWithT(t)
+	db, mock, err := sqlmock.New()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	adapter := adapters.NewPostgresAdapter(db, 0, "something-secret")
+
+	user := &entities.User{
+		ID:          uuid.New(),
+		Email:       gofakeit.Email(),
+		Password:    gofakeit.Password(true, true, true, true, true, 15),
+		Name:        gofakeit.Name(),
+		Gender:      gofakeit.Gender(),
+		DateOfBirth: gofakeit.Date(),
+		Location: entities.Location{
+			Latitude:  gofakeit.Address().Latitude,
+			Longitude: gofakeit.Address().Longitude,
+		},
+	}
+
+	mock.ExpectQuery(`SELECT \* FROM platform_user WHERE email = \$1 AND password = \$2 LIMIT 1;`).WithArgs(user.Email, user.Password).
+		WillReturnError(sql.ErrNoRows)
+
+	_, err = adapter.LoginUser(user.Email, user.Password)
+	g.Expect(err).To(MatchError(entities.ErrUserNotFound))
+}
+
+func TestPostgresAdapter_GenericErr(t *testing.T) {
+	g := NewWithT(t)
+	db, mock, err := sqlmock.New()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	adapter := adapters.NewPostgresAdapter(db, 0, "something-secret")
+
+	user := &entities.User{
+		ID:          uuid.New(),
+		Email:       gofakeit.Email(),
+		Password:    gofakeit.Password(true, true, true, true, true, 15),
+		Name:        gofakeit.Name(),
+		Gender:      gofakeit.Gender(),
+		DateOfBirth: gofakeit.Date(),
+		Location: entities.Location{
+			Latitude:  gofakeit.Address().Latitude,
+			Longitude: gofakeit.Address().Longitude,
+		},
+	}
+
+	mock.ExpectQuery(`SELECT \* FROM platform_user WHERE email = \$1 AND password = \$2 LIMIT 1;`).WithArgs(user.Email, user.Password).
+		WillReturnError(errors.New("an error occurred"))
+
+	_, err = adapter.LoginUser(user.Email, user.Password)
+	g.Expect(err).To(MatchError("an error occurred"))
+}
+
+func TestPostgresAdapter_IssueJWT(t *testing.T) {
+	g := NewWithT(t)
+	db, mock, err := sqlmock.New()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	adapter := adapters.NewPostgresAdapter(db, 0, "something-secret")
+
+	user := &entities.User{
+		ID:          uuid.New(),
+		Email:       gofakeit.Email(),
+		Password:    gofakeit.Password(true, true, true, true, true, 15),
+		Name:        gofakeit.Name(),
+		Gender:      gofakeit.Gender(),
+		DateOfBirth: gofakeit.Date(),
+		Location: entities.Location{
+			Latitude:  gofakeit.Address().Latitude,
+			Longitude: gofakeit.Address().Longitude,
+		},
+	}
+
+	token := &entities.Token{
+		ID:       uuid.New().String(),
+		UserID:   user.ID,
+		Value:    mockJWT,
+		IssuedAt: time.Now(),
+	}
+
+	mock.ExpectQuery(`SELECT \* FROM platform_user WHERE platform_user.id = \$1;`).WithArgs(user.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email", "password", "name", "gender", "date_of_birth", "location_latitude", "location_longitude"}).
+			AddRow(user.ID, user.Email, user.Password, user.Name, user.Gender, user.DateOfBirth, user.Location.Latitude, user.Location.Longitude))
+	mock.ExpectQuery(`INSERT INTO token \(user_id, value, issued_at\) VALUES \(\$1, \$2, \$3\) RETURNING \*;`).WithArgs(user.ID, sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "value", "issued_at"}).
+			AddRow(token.ID, token.UserID, token.Value, token.IssuedAt))
+
+	returnedToken, err := adapter.IssueJWT(user.ID)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(returnedToken).To(Equal(token))
+}
+
+func TestPostgresAdapter_IssueJWT_GetUserErr(t *testing.T) {
+	g := NewWithT(t)
+	db, mock, err := sqlmock.New()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	adapter := adapters.NewPostgresAdapter(db, 0, "something-secret")
+
+	user := &entities.User{
+		ID:          uuid.New(),
+		Email:       gofakeit.Email(),
+		Password:    gofakeit.Password(true, true, true, true, true, 15),
+		Name:        gofakeit.Name(),
+		Gender:      gofakeit.Gender(),
+		DateOfBirth: gofakeit.Date(),
+		Location: entities.Location{
+			Latitude:  gofakeit.Address().Latitude,
+			Longitude: gofakeit.Address().Longitude,
+		},
+	}
+
+	mock.ExpectQuery(`SELECT \* FROM platform_user WHERE platform_user.id = \$1;`).WithArgs(user.ID).
+		WillReturnError(errors.New("an error occurred"))
+
+	returnedToken, err := adapter.IssueJWT(user.ID)
+	g.Expect(err).To(MatchError("an error occurred"))
+	g.Expect(returnedToken).To(BeNil())
+}
+
+func TestPostgresAdapter_IssueJWT_CreatingTokenErr(t *testing.T) {
+	g := NewWithT(t)
+	db, mock, err := sqlmock.New()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	adapter := adapters.NewPostgresAdapter(db, 0, "something-secret")
+
+	user := &entities.User{
+		ID:          uuid.New(),
+		Email:       gofakeit.Email(),
+		Password:    gofakeit.Password(true, true, true, true, true, 15),
+		Name:        gofakeit.Name(),
+		Gender:      gofakeit.Gender(),
+		DateOfBirth: gofakeit.Date(),
+		Location: entities.Location{
+			Latitude:  gofakeit.Address().Latitude,
+			Longitude: gofakeit.Address().Longitude,
+		},
+	}
+
+	mock.ExpectQuery(`SELECT \* FROM platform_user WHERE platform_user.id = \$1;`).WithArgs(user.ID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email", "password", "name", "gender", "date_of_birth", "location_latitude", "location_longitude"}).
+			AddRow(user.ID, user.Email, user.Password, user.Name, user.Gender, user.DateOfBirth, user.Location.Latitude, user.Location.Longitude))
+	mock.ExpectQuery(`INSERT INTO token \(user_id, value, issued_at\) VALUES \(\$1, \$2, \$3\) RETURNING \*;`).WithArgs(user.ID, sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(errors.New("an error occurred"))
+
+	returnedToken, err := adapter.IssueJWT(user.ID)
+	g.Expect(err).To(MatchError("an error occurred"))
+	g.Expect(returnedToken).To(BeNil())
 }
 
 func TestPostgresAdapter_CreateUser(t *testing.T) {
