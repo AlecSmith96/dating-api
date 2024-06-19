@@ -21,7 +21,7 @@ For convenience, a test user gets created when the service starts up, it can be 
 ```
 {
   "email": "admin",
-  "password": "admin
+  "password": "admin"
 }
 ```
 
