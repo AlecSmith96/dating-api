@@ -17,6 +17,13 @@ The service can be run using the provided docker-compose file:
 ```
 docker-compose up --build -d
 ```
+For convenience, a test user gets created when the service starts up, it can be logged in using the following credentials:
+```
+{
+  "email": "admin",
+  "password": "admin
+}
+```
 
 ## Documentation
 The documentation is generated from the code using [swagger](https://github.com/swaggo/gin-swagger), it can be viewed at:
